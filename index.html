@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Check-in App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #searchContainer {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        #searchInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+        }
+        #clearSearch {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .check-in-btn {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .checked-in {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #downloadBtn {
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Event Check-in App</h1>
+    <div id="searchContainer">
+        <input type="text" id="searchInput" placeholder="Search by name...">
+        <span id="clearSearch">&times;</span>
+    </div>
+    <table id="attendeeTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>PMI ID</th>
+                <th>Check-in</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+    <button id="downloadBtn">Download Check-in Data</button>
+
+    <script>
+        const attendees = [
+            { name: "Venkat Raghava Rohit Gundelli", email: "raghavrohith87@gmail.com", mobile: "+919908044988" },
+            { name: "ASHWIN PREETHAM KUMAR", email: "ashwindba123@gmail.com", mobile: "+918919674282" },
+            { name: "Sudhansu Sekhar Singh", email: "s.sudhansu@gmail.com", mobile: "+919866789735" },
+            { name: "SuriyaNarayanan Jeyapal", email: "jsuriyan@gmail.com", mobile: "+919000156543" },
+            { name: "Krishna Vijayashekaran", email: "kv0875@gmail.com", mobile: "+919940167031" },
+            { name: "Babita J", email: "Babitaj@rediffmail.com", mobile: "+919515119596" }
+        ];
+
+        attendees.sort((a, b) => a.name.localeCompare(b.name));
+
+        const tableBody = document.querySelector("#attendeeTable tbody");
+        const searchInput = document.getElementById("searchInput");
+        const clearSearch = document.getElementById("clearSearch");
+        const downloadBtn = document.getElementById("downloadBtn");
+
+        function renderTable(filteredAttendees = attendees) {
+            tableBody.innerHTML = "";
+            filteredAttendees.forEach((attendee, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = attendee.name;
+                row.insertCell(1).textContent = attendee.email;
+                row.insertCell(2).textContent = attendee.mobile;
+                
+                const pmiCell = row.insertCell(3);
+                const pmiInput = document.createElement("input");
+                pmiInput.type = "text";
+                pmiInput.placeholder = "Enter PMI ID";
+                pmiInput.value = attendee.pmiId || "";
+                pmiInput.addEventListener("input", (e) => {
+                    attendee.pmiId = e.target.value;
+                });
+                pmiCell.appendChild(pmiInput);
+
+                const checkInCell = row.insertCell(4);
+                const checkInBtn = document.createElement("button");
+                checkInBtn.textContent = attendee.checkedIn ? "Undo Check-in" : "Check-in";
+                checkInBtn.className = `check-in-btn ${attendee.checkedIn ? "checked-in" : ""}`;
+                checkInBtn.addEventListener("click", () => {
+                    attendee.checkedIn = !attendee.checkedIn;
+                    checkInBtn.textContent = attendee.checkedIn ? "Undo Check-in" : "Check-in";
+                    checkInBtn.classList.toggle("checked-in");
+                });
+                checkInCell.appendChild(checkInBtn);
+            });
+        }
+
+        function filterAttendees() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filteredAttendees = attendees.filter(attendee => 
+                attendee.name.toLowerCase().includes(searchTerm)
+            );
+            renderTable(filteredAttendees);
+        }
+
+        searchInput.addEventListener("input", () => {
+            filterAttendees();
+            clearSearch.style.display = searchInput.value ? "inline" : "none";
+        });
+
+        clearSearch.addEventListener("click", () => {
+            searchInput.value = "";
+            filterAttendees();
+            clearSearch.style.display = "none";
+        });
+
+        downloadBtn.addEventListener("click", () => {
+            const checkedInAttendees = attendees.filter(attendee => attendee.checkedIn);
+            const csv = [
+                ["Name", "Email", "Mobile", "PMI ID"],
+                ...checkedInAttendees.map(attendee => [
+                    attendee.name,
+                    attendee.email,
+                    attendee.mobile,
+                    attendee.pmiId || ""
+                ])
+            ].map(row => row.join(",")).join("\n");
+
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            if (navigator.msSaveBlob) {
+                navigator.msSaveBlob(blob, "checked_in_attendees.csv");
+            } else {
+                link.href = URL.createObjectURL(blob);
+                link.style.display = "none";
+                link.download = "checked_in_attendees.csv";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        });
+
+        renderTable();
+    </script>
+</body>
+</html>
